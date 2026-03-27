@@ -44,6 +44,15 @@ export function createClientId() {
 }
 
 export function buildMarkdownReport(input: AnalysisInput, result: AnalysisResult) {
+  const competitorDescriptions = [
+    { name: input.comp1, category: input.comp1Category, desc: input.comp1Desc },
+    { name: input.comp2, category: input.comp2Category, desc: input.comp2Desc },
+    { name: input.comp3, category: input.comp3Category, desc: input.comp3Desc }
+  ]
+    .filter((item) => item.name.trim())
+    .map((item) => `- ${item.name}（${item.category || "未提供类别"}）：${item.desc || "未提供"}`)
+    .join("\n");
+
   const radarRows = Object.entries(result.radar.scores)
     .map(
       ([product, scores]) =>
@@ -65,7 +74,9 @@ export function buildMarkdownReport(input: AnalysisInput, result: AnalysisResult
   const opportunityRows = result.opportunities
     .map(
       (item) =>
-        `### ${item.title}\n优先级：${item.priority}\n标签：${item.tags.join(" / ")}\n\n${item.body}`
+        `### ${item.title}\n优先级：${item.priority}\n标签：${item.tags.join(" / ")}${
+          item.source_url ? `\n参考链接：${item.source_title || item.source_url} ${item.source_url}` : ""
+        }\n\n${item.body}`
     )
     .join("\n\n");
 
@@ -76,6 +87,9 @@ export function buildMarkdownReport(input: AnalysisInput, result: AnalysisResult
 - 产品类别：${input.category}
 - 产品描述：${input.myDesc || "未提供"}
 - 竞品：${[input.comp1, input.comp2, input.comp3].filter(Boolean).join(" / ")}
+
+## 竞品产品描述
+${competitorDescriptions}
 
 ## 概览
 - 市场规模：${result.overview.market_size}

@@ -108,7 +108,7 @@ export function ResultsTabs({
         </CardContent>
       </Card>
 
-      {activeTab === "overview" ? <OverviewPanel overview={result.overview} /> : null}
+      {activeTab === "overview" ? <OverviewPanel input={input} overview={result.overview} /> : null}
       {activeTab === "radar" ? <RadarPanel radar={result.radar} /> : null}
       {activeTab === "features" ? <FeaturesPanel features={result.features} /> : null}
       {activeTab === "swot" ? <SwotPanel swot={result.swot} /> : null}

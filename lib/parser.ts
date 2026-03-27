@@ -47,6 +47,24 @@ function normalizeScoreValue(value: unknown) {
   return "no";
 }
 
+function normalizeUrl(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 function normalizeAnalysisResult(input: AnalysisInput, payload: unknown): AnalysisResult {
   const recordSchema = z.record(z.string(), z.unknown());
   const parsedRecord = recordSchema.parse(payload);
@@ -103,7 +121,7 @@ function normalizeAnalysisResult(input: AnalysisInput, payload: unknown): Analys
       .array(z.record(z.string(), z.unknown()))
       .catch([])
       .parse(parsedRecord.opportunities)
-      .slice(0, 5)
+      .slice(0, 7)
       .map((item, index) => ({
         title: String(item.title ?? `机会点 ${index + 1}`),
         body: String(item.body ?? "建议进一步补充策略描述"),
@@ -111,7 +129,9 @@ function normalizeAnalysisResult(input: AnalysisInput, payload: unknown): Analys
           item.priority === "high" || item.priority === "medium" || item.priority === "low"
             ? item.priority
             : "medium",
-        tags: z.array(z.string()).catch([]).parse(item.tags).slice(0, 4)
+        tags: z.array(z.string()).catch([]).parse(item.tags).slice(0, 4),
+        source_title: String(item.source_title ?? ""),
+        source_url: normalizeUrl(item.source_url)
       }))
   };
 
@@ -148,12 +168,14 @@ function normalizeAnalysisResult(input: AnalysisInput, payload: unknown): Analys
     }
   }
 
-  while (normalized.opportunities.length < 3) {
+  while (normalized.opportunities.length < 5) {
     normalized.opportunities.push({
       title: `机会点 ${normalized.opportunities.length + 1}`,
       body: "建议结合市场细分场景进一步挖掘差异化策略。",
       priority: "medium",
-      tags: ["策略", "待细化"]
+      tags: ["策略", "待细化"],
+      source_title: "",
+      source_url: ""
     });
   }
 

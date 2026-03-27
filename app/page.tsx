@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, History, RefreshCcw, Sparkles } from "lucide-react";
+import { AlertTriangle, History, RefreshCcw, Sparkles, Trash2 } from "lucide-react";
 
 import { AnalysisForm } from "@/components/analysis-form";
 import { ResultsTabs } from "@/components/results-tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { AnalysisInput, AnalysisResult, ApiResponse, HistoryItem } from "@/lib/types";
 import {
   buildMarkdownReport,
@@ -16,6 +17,20 @@ import {
 
 const HISTORY_KEY = "competeiq-history";
 const loadingMessages = ["正在分析竞争格局...", "正在生成雷达评分...", "正在输出战略建议..."];
+
+function normalizeInput(input: AnalysisInput): AnalysisInput {
+  return {
+    ...input,
+    myDesc: input.myDesc ?? "",
+    comp1Category: input.comp1Category ?? "",
+    comp1Desc: input.comp1Desc ?? "",
+    comp2Category: input.comp2Category ?? "",
+    comp2Desc: input.comp2Desc ?? "",
+    comp3: input.comp3 ?? "",
+    comp3Category: input.comp3Category ?? "",
+    comp3Desc: input.comp3Desc ?? ""
+  };
+}
 
 export default function Page() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -31,7 +46,10 @@ export default function Page() {
     if (!stored) return;
 
     try {
-      const parsed = JSON.parse(stored) as HistoryItem[];
+      const parsed = (JSON.parse(stored) as HistoryItem[]).map((item) => ({
+        ...item,
+        input: normalizeInput(item.input)
+      }));
       setHistory(parsed);
     } catch {
       window.localStorage.removeItem(HISTORY_KEY);
@@ -51,14 +69,45 @@ export default function Page() {
   }, [isLoading]);
 
   function persistHistory(items: HistoryItem[]) {
-    setHistory(items);
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 6)));
+    const nextItems = items.slice(0, 6);
+    setHistory(nextItems);
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextItems));
+  }
+
+  function clearSelectedResult(itemId?: string) {
+    if (!itemId) {
+      setSelectedInput(null);
+      setCurrentInput(null);
+      setResult(null);
+      setError(null);
+      return;
+    }
+
+    const activeHistoryId = history.find((item) => item.input === currentInput && item.result === result)?.id;
+    if (activeHistoryId === itemId) {
+      setSelectedInput(null);
+      setCurrentInput(null);
+      setResult(null);
+      setError(null);
+    }
+  }
+
+  function handleDeleteHistoryItem(itemId: string) {
+    const nextHistory = history.filter((item) => item.id !== itemId);
+    persistHistory(nextHistory);
+    clearSelectedResult(itemId);
+  }
+
+  function handleClearHistory() {
+    persistHistory([]);
+    clearSelectedResult();
   }
 
   async function handleAnalyze(payload: AnalysisInput) {
+    const normalizedPayload = normalizeInput(payload);
     setIsLoading(true);
     setError(null);
-    setCurrentInput(payload);
+    setCurrentInput(normalizedPayload);
     setStatusText(loadingMessages[0]);
 
     try {
@@ -67,7 +116,7 @@ export default function Page() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(normalizedPayload)
       });
 
       const json = (await response.json()) as ApiResponse<AnalysisResult>;
@@ -81,7 +130,7 @@ export default function Page() {
         {
           id: createClientId(),
           createdAt: new Date().toISOString(),
-          input: payload,
+          input: normalizedPayload,
           result: json.data
         },
         ...history
@@ -124,34 +173,17 @@ export default function Page() {
 
       <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <section className="mb-8 rounded-[28px] border border-border/70 bg-white/[0.03] p-6 shadow-panel backdrop-blur-xl lg:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs uppercase tracking-[0.28em] text-cyan-100">
-                <Sparkles className="h-3.5 w-3.5" />
-                CompeteIQ
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl">
-                输入产品与竞品，生成结构化竞品分析。
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-                输出概览、雷达图、功能矩阵、SWOT 和机会点。
-              </p>
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs uppercase tracking-[0.28em] text-cyan-100">
+              <Sparkles className="h-3.5 w-3.5" />
+              CompeteIQ
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                ["服务端调用", "API Key 不暴露"],
-                ["结构化结果", "JSON 校验"],
-                ["本地记录", "保留最近 6 次"]
-              ].map(([title, text]) => (
-                <div
-                  key={title}
-                  className="rounded-2xl border border-border/70 bg-slate-950/60 px-4 py-3"
-                >
-                  <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">{title}</p>
-                  <p className="mt-2 text-sm text-foreground/90">{text}</p>
-                </div>
-              ))}
-            </div>
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
+              结构化输出竞品分析，直接看清差异和机会。
+            </h1>
+            <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+              输入我方产品与竞品信息，生成概览、雷达图、功能矩阵、SWOT 和机会点，适合用于产品判断、方案对比和增长讨论。
+            </p>
           </div>
         </section>
 
@@ -166,11 +198,21 @@ export default function Page() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5 text-cyan-200" />
-                  最近分析
-                </CardTitle>
-                <CardDescription>浏览器本地保存最近 6 次结果。</CardDescription>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <History className="h-5 w-5 text-cyan-200" />
+                      最近分析
+                    </CardTitle>
+                    <CardDescription>浏览器本地保存最近 6 次结果。</CardDescription>
+                  </div>
+                  {history.length > 0 ? (
+                    <Button variant="ghost" size="sm" onClick={handleClearHistory}>
+                      <Trash2 className="h-4 w-4" />
+                      清空
+                    </Button>
+                  ) : null}
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {history.length === 0 ? (
@@ -179,29 +221,45 @@ export default function Page() {
                   </div>
                 ) : (
                   history.map((item) => (
-                    <button
+                    <div
                       key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedInput(item.input);
-                        setCurrentInput(item.input);
-                        setResult(item.result);
-                        setError(null);
-                      }}
-                      className="w-full rounded-2xl border border-border/70 bg-white/5 p-4 text-left transition hover:bg-white/10"
+                      className="rounded-2xl border border-border/70 bg-white/5 p-4 transition hover:bg-white/10"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-medium text-foreground">{item.input.myProduct}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {item.input.category} · {item.input.comp1} / {item.input.comp2}
-                            {item.input.comp3 ? ` / ${item.input.comp3}` : ""}
-                          </p>
-                        </div>
-                        <RefreshCcw className="h-4 w-4 text-muted-foreground" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedInput(item.input);
+                            setCurrentInput(item.input);
+                            setResult(item.result);
+                            setError(null);
+                          }}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-medium text-foreground">{item.input.myProduct}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {item.input.category} · {item.input.comp1} / {item.input.comp2}
+                                {item.input.comp3 ? ` / ${item.input.comp3}` : ""}
+                              </p>
+                            </div>
+                            <RefreshCcw className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          </div>
+                          <p className="mt-3 text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</p>
+                        </button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0"
+                          aria-label={`删除 ${item.input.myProduct} 的历史记录`}
+                          onClick={() => handleDeleteHistoryItem(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <p className="mt-3 text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</p>
-                    </button>
+                    </div>
                   ))
                 )}
               </CardContent>

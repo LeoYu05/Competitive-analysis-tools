@@ -23,8 +23,14 @@ const EXAMPLE_DATA: AnalysisInput = {
   category: "AI 竞品分析平台",
   myDesc: "面向产品经理和增长团队，输入产品与竞品后自动生成结构化竞品分析报告。",
   comp1: "Crayon",
+  comp1Category: "竞争情报平台",
+  comp1Desc: "面向销售与市场团队的竞争情报平台，强调市场监测、竞品动态跟踪与 battlecard 输出。",
   comp2: "Kompyte",
-  comp3: "Klue"
+  comp2Category: "销售赋能与竞品监测平台",
+  comp2Desc: "聚焦自动化竞品追踪和销售赋能，支持对手变更监控、情报聚合与 CRM 协同。",
+  comp3: "Klue",
+  comp3Category: "企业级竞争赋能平台",
+  comp3Desc: "强调企业级竞争赋能与情报协作，覆盖情报收集、分发、分析与销售场景落地。"
 };
 
 export function AnalysisForm({ initialValue, isLoading, statusText, onSubmit }: AnalysisFormProps) {
@@ -34,8 +40,14 @@ export function AnalysisForm({ initialValue, isLoading, statusText, onSubmit }: 
       category: "",
       myDesc: "",
       comp1: "",
+      comp1Category: "",
+      comp1Desc: "",
       comp2: "",
-      comp3: ""
+      comp2Category: "",
+      comp2Desc: "",
+      comp3: "",
+      comp3Category: "",
+      comp3Desc: ""
     }
   );
   const [errors, setErrors] = useState<Partial<Record<keyof AnalysisInput, string>>>({});
@@ -126,6 +138,13 @@ export function AnalysisForm({ initialValue, isLoading, statusText, onSubmit }: 
                 onChange={(event) => updateField("comp1", event.target.value)}
               />
               {errors.comp1 ? <p className="mt-2 text-xs text-rose-300">{errors.comp1}</p> : null}
+              <Input
+                id="comp1Category"
+                className="mt-3"
+                placeholder="产品类别（可选）"
+                value={form.comp1Category}
+                onChange={(event) => updateField("comp1Category", event.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="comp2">竞品 2</Label>
@@ -136,6 +155,13 @@ export function AnalysisForm({ initialValue, isLoading, statusText, onSubmit }: 
                 onChange={(event) => updateField("comp2", event.target.value)}
               />
               {errors.comp2 ? <p className="mt-2 text-xs text-rose-300">{errors.comp2}</p> : null}
+              <Input
+                id="comp2Category"
+                className="mt-3"
+                placeholder="产品类别（可选）"
+                value={form.comp2Category}
+                onChange={(event) => updateField("comp2Category", event.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="comp3">竞品 3</Label>
@@ -144,6 +170,43 @@ export function AnalysisForm({ initialValue, isLoading, statusText, onSubmit }: 
                 placeholder="可选"
                 value={form.comp3}
                 onChange={(event) => updateField("comp3", event.target.value)}
+              />
+              <Input
+                id="comp3Category"
+                className="mt-3"
+                placeholder="产品类别（可选）"
+                value={form.comp3Category}
+                onChange={(event) => updateField("comp3Category", event.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-3">
+            <div>
+              <Label htmlFor="comp1Desc">竞品 1 描述（可选）</Label>
+              <Textarea
+                id="comp1Desc"
+                placeholder="补充该竞品的目标用户、核心场景或主要能力。"
+                value={form.comp1Desc}
+                onChange={(event) => updateField("comp1Desc", event.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="comp2Desc">竞品 2 描述（可选）</Label>
+              <Textarea
+                id="comp2Desc"
+                placeholder="补充该竞品的目标用户、核心场景或主要能力。"
+                value={form.comp2Desc}
+                onChange={(event) => updateField("comp2Desc", event.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="comp3Desc">竞品 3 描述（可选）</Label>
+              <Textarea
+                id="comp3Desc"
+                placeholder="补充该竞品的目标用户、核心场景或主要能力。"
+                value={form.comp3Desc}
+                onChange={(event) => updateField("comp3Desc", event.target.value)}
               />
             </div>
           </div>

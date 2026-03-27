@@ -16,8 +16,14 @@ export const analysisInputSchema = z.object({
   category: z.string().trim().min(1, "请输入产品类别"),
   myDesc: z.string().trim().max(1200).optional().default(""),
   comp1: z.string().trim().min(1, "请输入至少 2 个竞品名称"),
+  comp1Category: z.string().trim().max(200).optional().default(""),
+  comp1Desc: z.string().trim().max(1200).optional().default(""),
   comp2: z.string().trim().min(1, "请输入至少 2 个竞品名称"),
-  comp3: z.string().trim().optional().default("")
+  comp2Category: z.string().trim().max(200).optional().default(""),
+  comp2Desc: z.string().trim().max(1200).optional().default(""),
+  comp3: z.string().trim().optional().default(""),
+  comp3Category: z.string().trim().max(200).optional().default(""),
+  comp3Desc: z.string().trim().max(1200).optional().default("")
 });
 
 export const analysisResultSchema = z.object({
@@ -67,9 +73,11 @@ export const analysisResultSchema = z.object({
       title: z.string().min(1),
       body: z.string().min(1),
       priority: z.enum(["high", "medium", "low"]),
-      tags: z.array(z.string().min(1)).min(1)
+      tags: z.array(z.string().min(1)).min(1),
+      source_title: z.string().optional().default(""),
+      source_url: z.string().optional().default("")
     })
-  ).min(3).max(5)
+  ).min(5).max(7)
 });
 
 export type AnalysisInput = z.infer<typeof analysisInputSchema>;

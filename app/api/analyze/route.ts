@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 
-import { generateStructuredAnalysis } from "@/lib/ai";
+import { AIProviderError, generateStructuredAnalysis } from "@/lib/ai";
 import { parseAnalysisResponse } from "@/lib/parser";
 import { buildAnalysisPrompt } from "@/lib/prompt";
 import { analysisInputSchema, type ApiError, type ApiSuccess } from "@/lib/types";
@@ -12,6 +12,27 @@ const WINDOW_MS = 10 * 60 * 1000;
 const LIMIT = 6;
 
 const rateLimitStore = new Map<string, number[]>();
+
+function mapAIProviderStatus(status: number) {
+  if (status === 429) {
+    return {
+      status: 429,
+      message: "AI 服务当前请求过多，请稍后再试。"
+    };
+  }
+
+  if (status === 502 || status === 503 || status === 504) {
+    return {
+      status: 503,
+      message: "AI 服务暂时不可用，请稍后重试。"
+    };
+  }
+
+  return {
+    status: 502,
+    message: "AI 服务请求失败，请稍后重试。"
+  };
+}
 
 function getClientIp(request: NextRequest) {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -78,6 +99,18 @@ export async function POST(request: NextRequest) {
           error: "请求体格式错误，请检查提交内容。"
         },
         { status: 400 }
+      );
+    }
+
+    if (error instanceof AIProviderError) {
+      const mapped = mapAIProviderStatus(error.status);
+
+      return NextResponse.json<ApiError>(
+        {
+          success: false,
+          error: mapped.message
+        },
+        { status: mapped.status }
       );
     }
 
