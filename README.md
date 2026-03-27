@@ -65,14 +65,14 @@ lib/
 ```env
 OPENAI_API_KEY=your_together_api_key
 OPENAI_BASE_URL=https://api.together.xyz/v1
-OPENAI_MODEL=zai-org/GLM-5
+OPENAI_MODEL=openai/gpt-oss-120b
 AI_PROVIDER=openai
 ```
 
 说明：
 
 - `AI_PROVIDER=openai` 指的是使用 OpenAI 兼容协议，不代表必须接 OpenAI 官方模型
-- 当前项目可直接通过 OpenAI 兼容接口调用 Together 上的 `zai-org/GLM-5`
+- 当前项目可直接通过 OpenAI 兼容接口调用 Together 上的 `openai/gpt-oss-120b`
 - 如果切换到其他兼容网关，通常只需要调整 `OPENAI_BASE_URL` 和 `OPENAI_MODEL`
 
 ## 本地运行
@@ -260,7 +260,7 @@ npm run start
 ```env
 OPENAI_API_KEY=your_together_api_key
 OPENAI_BASE_URL=https://api.together.xyz/v1
-OPENAI_MODEL=zai-org/GLM-5
+OPENAI_MODEL=openai/gpt-oss-120b
 AI_PROVIDER=openai
 ```
 
