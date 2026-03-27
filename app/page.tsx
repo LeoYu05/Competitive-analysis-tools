@@ -131,17 +131,17 @@ export default function Page() {
                 CompeteIQ
               </div>
               <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl">
-                AI 竞品分析，从静态原型升级为可上线产品。
+                输入产品与竞品，生成结构化竞品分析。
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-                面向产品、战略与增长团队。输入我方产品与竞品名称，生成结构化概览、雷达图、功能矩阵、SWOT 与战略机会点。
+                输出概览、雷达图、功能矩阵、SWOT 和机会点。
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               {[
                 ["服务端调用", "API Key 不暴露"],
-                ["结构化返回", "严格 JSON 校验"],
-                ["可持续迭代", "模块化前后端"]
+                ["结构化结果", "JSON 校验"],
+                ["本地记录", "保留最近 6 次"]
               ].map(([title, text]) => (
                 <div
                   key={title}
@@ -170,7 +170,7 @@ export default function Page() {
                   <History className="h-5 w-5 text-cyan-200" />
                   最近分析
                 </CardTitle>
-                <CardDescription>最近 6 次分析会保存在浏览器本地。</CardDescription>
+                <CardDescription>浏览器本地保存最近 6 次结果。</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {history.length === 0 ? (

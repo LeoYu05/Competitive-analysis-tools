@@ -77,11 +77,9 @@ export function AnalysisForm({ initialValue, isLoading, statusText, onSubmit }: 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-cyan-200" />
-          创建竞品分析任务
+          新建分析
         </CardTitle>
-        <CardDescription>
-          输入我方产品与最多 3 个竞品，生成结构化 AI 竞品分析报告。
-        </CardDescription>
+        <CardDescription>填写产品信息并提交分析。</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-5" onSubmit={handleSubmit}>
@@ -153,7 +151,7 @@ export function AnalysisForm({ initialValue, isLoading, statusText, onSubmit }: 
           <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-white/5 p-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-2">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin text-cyan-200" /> : <FlaskConical className="h-4 w-4 text-cyan-200" />}
-              <span>{isLoading ? statusText : "支持 OpenAI 服务端调用、严格 JSON 校验与导出能力。"}</span>
+              <span>{isLoading ? statusText : "支持服务端调用、结果校验和导出。"}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
