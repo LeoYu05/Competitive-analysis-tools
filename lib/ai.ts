@@ -100,8 +100,68 @@ class OpenAIProvider implements AIProvider {
 }
 
 class AnthropicProvider implements AIProvider {
-  async generateText(): Promise<ProviderResponse> {
-    throw new Error("Anthropic provider 尚未启用，请先实现 API 调用逻辑");
+  async generateText({ prompt }: GenerateTextParams): Promise<ProviderResponse> {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+
+    if (!apiKey) {
+      throw new Error("未配置 ANTHROPIC_API_KEY");
+    }
+
+    let lastError: AIProviderError | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01"
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          temperature: 0.4,
+          system: "你是严谨的竞品分析引擎。必须遵守格式要求，输出可直接 JSON.parse 的纯 JSON。",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        lastError = new AIProviderError(
+          `Anthropic 服务请求失败：${response.status} ${detail}`,
+          response.status,
+          detail
+        );
+
+        if (RETRYABLE_STATUS_CODES.has(response.status) && attempt < MAX_RETRIES) {
+          await sleep(RETRY_DELAY_MS * 2 ** attempt);
+          continue;
+        }
+
+        throw lastError;
+      }
+
+      const payload = (await response.json()) as {
+        content?: Array<{ type: string; text?: string }>;
+      };
+
+      const text = payload.content?.find((block) => block.type === "text")?.text?.trim();
+
+      if (!text) {
+        throw new Error("Anthropic 服务未返回有效内容");
+      }
+
+      return { text };
+    }
+
+    throw lastError ?? new Error("Anthropic 服务请求失败");
   }
 }
 

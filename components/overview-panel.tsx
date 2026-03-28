@@ -1,4 +1,7 @@
-import { Sparkle } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Check, Copy, Sparkle } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AnalysisInput, AnalysisResult } from "@/lib/types";
@@ -8,12 +11,38 @@ type OverviewPanelProps = {
   overview: AnalysisResult["overview"];
 };
 
+function CopyIconButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard not available
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="ml-auto rounded-lg p-1 text-cyan-100/60 transition hover:bg-cyan-300/10 hover:text-cyan-100"
+      aria-label="复制核心洞察"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
 export function OverviewPanel({ input, overview }: OverviewPanelProps) {
   const competitorProfiles = [
     { name: input.comp1, category: input.comp1Category, desc: input.comp1Desc },
     { name: input.comp2, category: input.comp2Category, desc: input.comp2Desc },
     { name: input.comp3, category: input.comp3Category, desc: input.comp3Desc }
   ].filter((item) => item.name.trim());
+
   const analysisBasis = [
     input.category || "产品类别",
     input.myDesc ? "我方产品描述" : "",
@@ -28,6 +57,15 @@ export function OverviewPanel({ input, overview }: OverviewPanelProps) {
           <CardTitle>市场概览</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            {overview.stats.map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-border/70 bg-white/5 p-4 text-center">
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-border/70 bg-white/5 p-4">
               <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">市场规模</p>
@@ -45,6 +83,7 @@ export function OverviewPanel({ input, overview }: OverviewPanelProps) {
               <div className="flex items-center gap-2 text-cyan-100">
                 <Sparkle className="h-4 w-4" />
                 核心洞察
+                <CopyIconButton text={overview.key_insight} />
               </div>
               <p className="mt-2 text-sm leading-6 text-cyan-50">{overview.key_insight}</p>
             </div>

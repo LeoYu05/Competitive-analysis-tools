@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileJson, LayoutDashboard, ListChecks, Orbit, ShieldAlert, Target } from "lucide-react";
+import { Download, FileJson, LayoutDashboard, ListChecks, Orbit, Printer, ShieldAlert, Target } from "lucide-react";
 
 import { FeaturesPanel } from "@/components/features-panel";
 import { OpportunitiesPanel } from "@/components/opportunities-panel";
@@ -72,7 +72,7 @@ export function ResultsTabs({
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="print:hidden">
         <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-2">
             {tabs.map((tab) => {
@@ -104,15 +104,21 @@ export function ResultsTabs({
               <Download className="h-4 w-4" />
               导出 Markdown
             </Button>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" />
+              打印 / PDF
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {activeTab === "overview" ? <OverviewPanel input={input} overview={result.overview} /> : null}
-      {activeTab === "radar" ? <RadarPanel radar={result.radar} /> : null}
-      {activeTab === "features" ? <FeaturesPanel features={result.features} /> : null}
-      {activeTab === "swot" ? <SwotPanel swot={result.swot} /> : null}
-      {activeTab === "opportunities" ? <OpportunitiesPanel opportunities={result.opportunities} /> : null}
+      <div className="print-content">
+        {activeTab === "overview" ? <OverviewPanel input={input} overview={result.overview} /> : null}
+        {activeTab === "radar" ? <RadarPanel radar={result.radar} /> : null}
+        {activeTab === "features" ? <FeaturesPanel features={result.features} /> : null}
+        {activeTab === "swot" ? <SwotPanel swot={result.swot} /> : null}
+        {activeTab === "opportunities" ? <OpportunitiesPanel opportunities={result.opportunities} /> : null}
+      </div>
     </div>
   );
 }

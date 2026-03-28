@@ -26,3 +26,64 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+@media print {
+  body {
+    background: white !important;
+    color: #111 !important;
+    font-size: 12pt;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print-content {
+    color: #111;
+  }
+
+  /* Make cards readable on white paper */
+  [class*="bg-white/"] {
+    background: #f8f9fa !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  [class*="text-muted"] {
+    color: #555 !important;
+  }
+
+  [class*="text-foreground"] {
+    color: #111 !important;
+  }
+
+  [class*="text-cyan"] {
+    color: #0891b2 !important;
+  }
+
+  [class*="text-white"] {
+    color: #111 !important;
+  }
+
+  [class*="text-slate"] {
+    color: #334155 !important;
+  }
+
+  [class*="bg-cyan"] {
+    background: #e0f7fa !important;
+    border-color: #b2ebf2 !important;
+  }
+
+  [class*="border-cyan"] {
+    border-color: #b2ebf2 !important;
+  }
+
+  [class*="bg-slate-950"] {
+    background: #f1f5f9 !important;
+  }
+
+  /* Avoid page breaks inside cards */
+  .rounded-2xl,
+  .rounded-\[28px\] {
+    break-inside: avoid;
+  }
+}

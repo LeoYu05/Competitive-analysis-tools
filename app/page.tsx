@@ -7,7 +7,7 @@ import { AnalysisForm } from "@/components/analysis-form";
 import { ResultsTabs } from "@/components/results-tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { AnalysisInput, AnalysisResult, ApiResponse, HistoryItem } from "@/lib/types";
+import type { AnalysisInput, AnalysisResult, ApiError, HistoryItem } from "@/lib/types";
 import {
   buildMarkdownReport,
   createClientId,
@@ -16,7 +16,7 @@ import {
 } from "@/lib/utils";
 
 const HISTORY_KEY = "competeiq-history";
-const loadingMessages = ["正在分析竞争格局...", "正在生成雷达评分...", "正在输出战略建议..."];
+const HISTORY_LIMIT = 10;
 
 function normalizeInput(input: AnalysisInput): AnalysisInput {
   return {
@@ -38,8 +38,9 @@ export default function Page() {
   const [selectedInput, setSelectedInput] = useState<AnalysisInput | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [statusText, setStatusText] = useState(loadingMessages[0]);
+  const [statusText, setStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [lastPayload, setLastPayload] = useState<AnalysisInput | null>(null);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(HISTORY_KEY);
@@ -56,20 +57,8 @@ export default function Page() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!isLoading) return;
-
-    let index = 0;
-    const timer = window.setInterval(() => {
-      index = (index + 1) % loadingMessages.length;
-      setStatusText(loadingMessages[index]);
-    }, 1800);
-
-    return () => window.clearInterval(timer);
-  }, [isLoading]);
-
   function persistHistory(items: HistoryItem[]) {
-    const nextItems = items.slice(0, 6);
+    const nextItems = items.slice(0, HISTORY_LIMIT);
     setHistory(nextItems);
     window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextItems));
   }
@@ -83,7 +72,9 @@ export default function Page() {
       return;
     }
 
-    const activeHistoryId = history.find((item) => item.input === currentInput && item.result === result)?.id;
+    const activeHistoryId = history.find(
+      (item) => item.input === currentInput && item.result === result
+    )?.id;
     if (activeHistoryId === itemId) {
       setSelectedInput(null);
       setCurrentInput(null);
@@ -105,37 +96,79 @@ export default function Page() {
 
   async function handleAnalyze(payload: AnalysisInput) {
     const normalizedPayload = normalizeInput(payload);
+    setLastPayload(normalizedPayload);
     setIsLoading(true);
     setError(null);
+    setResult(null);
     setCurrentInput(normalizedPayload);
-    setStatusText(loadingMessages[0]);
+    setStatusText("正在准备分析...");
 
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(normalizedPayload)
       });
 
-      const json = (await response.json()) as ApiResponse<AnalysisResult>;
-
-      if (!response.ok || !json.success) {
-        throw new Error(json.success ? "分析失败，请稍后重试。" : json.error);
+      if (!response.ok) {
+        const json = (await response.json()) as ApiError;
+        throw new Error(json.error || "请求失败，请检查网络或稍后重试。");
       }
 
-      setResult(json.data);
-      const nextHistory: HistoryItem[] = [
-        {
-          id: createClientId(),
-          createdAt: new Date().toISOString(),
-          input: normalizedPayload,
-          result: json.data
-        },
-        ...history
-      ].slice(0, 6);
-      persistHistory(nextHistory);
+      if (!response.body) {
+        throw new Error("服务端未返回数据流，请稍后重试。");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let didReceiveResult = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          if (!part.startsWith("data: ")) continue;
+          const raw = part.slice(6).trim();
+          if (!raw) continue;
+
+          let event: { type: string; message?: string; data?: AnalysisResult };
+          try {
+            event = JSON.parse(raw);
+          } catch {
+            continue;
+          }
+
+          if (event.type === "phase" && event.message) {
+            setStatusText(event.message);
+          } else if (event.type === "result" && event.data) {
+            didReceiveResult = true;
+            setResult(event.data);
+            setIsLoading(false);
+            const nextHistory: HistoryItem[] = [
+              {
+                id: createClientId(),
+                createdAt: new Date().toISOString(),
+                input: normalizedPayload,
+                result: event.data
+              },
+              ...history
+            ].slice(0, HISTORY_LIMIT);
+            persistHistory(nextHistory);
+          } else if (event.type === "error" && event.message) {
+            throw new Error(event.message);
+          }
+        }
+      }
+
+      if (!didReceiveResult) {
+        throw new Error("分析未完成，请稍后重试。");
+      }
     } catch (requestError) {
       setResult(null);
       setError(
@@ -172,7 +205,7 @@ export default function Page() {
       <div className="pointer-events-none fixed inset-0 bg-grid-fade bg-[size:48px_48px] opacity-[0.07]" />
 
       <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="mb-8 rounded-[28px] border border-border/70 bg-white/[0.03] p-6 shadow-panel backdrop-blur-xl lg:p-8">
+        <section className="mb-8 rounded-[28px] border border-border/70 bg-white/[0.03] p-6 shadow-panel backdrop-blur-xl lg:p-8 print:hidden">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs uppercase tracking-[0.28em] text-cyan-100">
               <Sparkles className="h-3.5 w-3.5" />
@@ -188,7 +221,7 @@ export default function Page() {
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[420px,minmax(0,1fr)]">
-          <div className="space-y-6">
+          <div className="space-y-6 print:hidden">
             <AnalysisForm
               initialValue={selectedInput}
               isLoading={isLoading}
@@ -204,7 +237,7 @@ export default function Page() {
                       <History className="h-5 w-5 text-cyan-200" />
                       最近分析
                     </CardTitle>
-                    <CardDescription>浏览器本地保存最近 6 次结果。</CardDescription>
+                    <CardDescription>浏览器本地保存最近 {HISTORY_LIMIT} 次结果。</CardDescription>
                   </div>
                   {history.length > 0 ? (
                     <Button variant="ghost" size="sm" onClick={handleClearHistory}>
@@ -246,7 +279,9 @@ export default function Page() {
                             </div>
                             <RefreshCcw className="h-4 w-4 shrink-0 text-muted-foreground" />
                           </div>
-                          <p className="mt-3 text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</p>
+                          <p className="mt-3 text-xs text-muted-foreground">
+                            {formatDateTime(item.createdAt)}
+                          </p>
                         </button>
                         <Button
                           type="button"
@@ -267,9 +302,22 @@ export default function Page() {
 
             {error ? (
               <Card className="border-rose-400/20 bg-rose-400/8">
-                <CardContent className="flex items-start gap-3 p-4 text-sm text-rose-100">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>{error}</p>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3 text-sm text-rose-100">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>{error}</p>
+                  </div>
+                  {lastPayload ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 border-rose-400/30 text-rose-100 hover:bg-rose-400/10"
+                      onClick={() => handleAnalyze(lastPayload)}
+                    >
+                      <RefreshCcw className="h-4 w-4" />
+                      重新分析
+                    </Button>
+                  ) : null}
                 </CardContent>
               </Card>
             ) : null}
